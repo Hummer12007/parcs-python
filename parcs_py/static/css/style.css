@@ -1,0 +1,36 @@
+.footer {
+    padding: 0px !important;
+}
+
+.i-id {
+    font-weight: bold;
+}
+
+.i-attr-name {
+    font-weight: bold;
+}
+
+.job-name {
+    font-weight: bold;
+}
+
+.i-id, .job-name, .i-attr-name, .i-attr-value {
+    font-size: 20px;
+}
+
+.i-btn {
+    width: 80px;
+    margin-top: 10px;
+}
+
+.row {
+    margin-top: 5px
+}
+
+.disabled-worker {
+    opacity: 0.4;
+}
+
+.error-text{
+    color: red;
+}

@@ -1,0 +1,53 @@
+<html>
+
+<head>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+     <!-- Latest compiled and minified JavaScript -->
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+    <script src="{{ url_for('static',filename='js/app.js') }}" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/style.css') }}">
+
+    {% if title %}
+    <title>Python PARCS - {{title}}</title>
+    {% else %}
+    <title>Python PARCS</title>
+    {% endif %}
+</head>
+
+<body>
+
+<div class="container">
+    <div class="row">
+        <nav class="navbar navbar-inverse">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/">Python PARCS</a>
+            </div>
+            <ul class="nav navbar-nav">
+                <li {% if request.path=='/' or request.path=='/index' %}class="active" {% endif %}><a
+                        href="/index">Home</a>
+                </li>
+                <li {% if request.path=='/nodes' %} class="active" {% endif %}><a href="/workers">Nodes</a></li>
+                <li {% if request.path=='/jobs' %} class="active" {% endif %}><a href="/jobs">Jobs</a></li>
+                <li {% if request.path=='/add/job' %} class="active" {% endif %}><a href="/add_job">Add Job</a></li>
+                <li {% if request.path=='/about' %} class="active" {% endif %}><a href="/about">About</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="">
+        {% block content %}{% endblock %}
+    </div>
+    <!-- Site footer -->
+
+    <div class="container navbar-fixed-bottom footer">
+        <div class="navbar navbar-inverse">
+            <span class="navbar-text ">&copy; PARCS 2015</span>
+        </div>
+    </div>
+</div>
+</body>
+
+</html>
