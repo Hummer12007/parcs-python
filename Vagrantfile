@@ -70,6 +70,7 @@ Vagrant.configure(2) do |config|
     sudo pip install zerorpc py-cpuinfo flask requests
     cd ~
     git clone https://github.com/mhodovaniuk/parcs_py_project.git
-    mkdir ws
+    mkdir job_home
+    ifconfig
   SHELL
 end
