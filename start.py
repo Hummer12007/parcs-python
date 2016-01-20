@@ -12,5 +12,5 @@ parser.add_argument('-config', help='Configuration file location')
 args = parser.parse_args()
 config = Config.load_from_file(args.config) if args.config is not None else Config(int(args.port), args.job_home,
                                                                                    args.master_ip,
-                                                                                   int(args.master_port))
+                                                                                   int(args.master_port) if args.master_port else None)
 app.start(config)
