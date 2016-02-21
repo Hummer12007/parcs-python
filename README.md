@@ -19,8 +19,9 @@ Run ubuntu_install.sh
 ### Use start.py
 
 #### Config file mode
-python2 start.py -config path_to_config/conf.config
-Config file example:
+```python2 start.py -config=/path_to_config/conf.config```
+
+Config file examples:
 
 Master:
 ```
