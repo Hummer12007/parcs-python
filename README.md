@@ -14,14 +14,14 @@ Master:
 [Node]
 master=True
 port=8080
-job_home=/home/mhodovaniuk/WorkSpace/MasterWork/parcs-py-project/master_jobs
+job_home=~/.parcs-py/jobs/master_jobs
 ```
 Worker:
 ```
 [Node]
 master=False
 port=8090
-job_home=/home/mhodovaniuk/WorkSpace/MasterWork/parcs-py-project/worker1_jobs
+job_home=~/.parcs-py/jobs/worker1_jobs
 [Master Node]
 ip=localhost
 port=8080
