@@ -19,6 +19,9 @@ class NodeLink:
             'enabled':self.enabled
         }
 
+    def __str__(self):
+        return "%s:%d)" % (self.ip, self.port)
+
 
 def create_node_link(json):
     return NodeLink(json['ip'], json['port'],  create_node_info(json['info']))

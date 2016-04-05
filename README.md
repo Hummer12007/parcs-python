@@ -5,7 +5,7 @@
 ### Linux (Fedora)
 1. Install python2, virtualenv
 2. Create virtual environment with: ```virtualenv -p python2 py2-env``` and activate it: ```source py2-env/bin/activate```
-3. Install dependencies with pip: zerorpc, py-cpuinfo, requests, flask
+3. Install dependencies with pip: pyro4, py-cpuinfo, requests, flask
 
 ### Linux (Ubuntu)
 Run ubuntu_install.sh

@@ -1,4 +1,6 @@
 import shutil
+import tempfile
+
 import os
 import logging
 
@@ -8,8 +10,13 @@ OUTPUT_FILE_NAME = 'output.txt'
 
 
 def store_file(afile, file_path):
-    afile.save(file_path)
-    log.info('File was stored to %s.' , file_path)
+    try:
+        afile.save(file_path)
+        log.info('File was stored to %s.', file_path)
+        return True
+    except Exception as e:
+        log.info('Error while file storing to %s.', file_path)
+        return False
 
 
 def store_job_file(job_home, afile, job_id, file_name):
@@ -44,14 +51,29 @@ def get_input_path(job_home, job_id):
 def get_output_path(job_home, job_id):
     return os.path.join(job_home, str(job_id), OUTPUT_FILE_NAME)
 
-def get_job_directory(job_home,job_id):
-    return os.path.join(job_home,str(job_id))
 
-def clear_directory(adir):
+def get_job_directory(job_home, job_id):
+    return os.path.join(job_home, str(job_id))
+
+
+def clear_directory(directory):
     try:
-        shutil.rmtree(adir)
+        shutil.rmtree(directory)
         # print '>> Remove dir stub'
+        log.info('Directory %s was cleared.', directory)
     except Exception as e:
-        pass
-    log.info('Directory %s was removed.' , adir)
+        log.warn('Error while clearing %s directory.', directory)
+
+
+def setup_working_directory():
+    try:
+        directory = tempfile.mkdtemp()
+        log.info('Temporary directory %s was created.', directory)
+        clear_directory(directory)
+        return directory
+    except Exception as e:
+        log.fatal('Error while working directory setup.')
+        raise e
+
+
 log = logging.getLogger('File Utils')

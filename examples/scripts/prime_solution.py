@@ -22,6 +22,7 @@ class Solver:
         # map
         mapped = []
         for i in xrange(0, len(self.workers)):
+            print("map %d" % i)
             mapped.append(self.workers[i].mymap(str(a + i * step_n), str(a + (i + 1) * step_n), step_k))
 
         # reduce
@@ -33,7 +34,10 @@ class Solver:
         print("Job Finished")
 
     @staticmethod
-    def mymap(a, b, k):
+    def mymap(a, b, count):
+        print(a)
+        print(b)
+        print(count)
         a = int(a)
         b = int(b)
         primes = []
@@ -41,7 +45,7 @@ class Solver:
         if a % 2 == 0:
             a += 1
 
-        while len(primes) < k and a < b:
+        while len(primes) < count and a < b:
             if Solver.is_probable_prime(a):
                 primes.append(str(a))
             a += 2
@@ -50,11 +54,13 @@ class Solver:
 
     @staticmethod
     def myreduce(mapped):
+        print("reduce")
         output = []
 
         for primes in mapped:
-            output = output + primes.get()
-
+            print("reduce loop")
+            output = output + primes.value
+        print("reduce done")
         return output
 
     def read_input(self):
@@ -69,6 +75,7 @@ class Solver:
         f.write(', '.join(output))
         f.write('\n')
         f.close()
+        print("output done")
 
     @staticmethod
     def is_probable_prime(n):

@@ -48,7 +48,7 @@ Vagrant.configure(2) do |config|
     # vb.gui = true
   
     # Customize the amount of memory on the VM:
-    vb.memory = "1024"
+    vb.memory = "2024"
   end
   #
   # View the documentation for the provider you are using for more
@@ -67,13 +67,9 @@ Vagrant.configure(2) do |config|
   config.vm.provision "shell", inline: <<-SHELL
     sudo apt-get -y update
     sudo apt-get install -y git vim python-dev libxml2-dev libxslt-dev
-    sudo pip install zerorpc py-cpuinfo flask requests
+    sudo pip install pyro4 py-cpuinfo flask requests
     cd ~
     git clone https://github.com/mhodovaniuk/parcs_py_project.git
-    mkdir -p .parcs-py/jobs/master
-    mkdir -p .parcs-py/jobs/worker1
-    mkdir -p .parcs-py/jobs/worker2
-    mkdir -p .parcs-py/jobs/worker3
     ifconfig
   SHELL
 end

@@ -1,13 +1,15 @@
+import Pyro4
 from flask import Flask, render_template, request, send_from_directory, jsonify, Response
 import socket
 import ConfigParser
 from node import Node
 from node_link import create_node_link
 from file_utils import get_job_directory, OUTPUT_FILE_NAME, SOLUTION_FILE_NAME, INPUT_FILE_NAME, store_input, \
-    store_solution
+    store_solution, setup_working_directory
 from job import Job
 import logging
 from Queue import Queue
+from network_utils import find_free_port
 from parcs_py.scheduler import Scheduler
 
 
@@ -15,11 +17,11 @@ class Config:
     NODE_SECTION = 'Node'
     MASTER_NODE_SECTION = 'Master Node'
 
-    def __init__(self, port, job_home, master_ip=None, master_port=None):
+    def __init__(self, port, master_ip=None, master_port=None):
         self.master = master_ip is None
         self.ip = socket.gethostbyname(socket.gethostname())
-        self.port = port
-        self.job_home = job_home
+        self.port = port if port else find_free_port()
+        self.job_home = setup_working_directory()
         self.master_ip = master_ip
         self.master_port = master_port
 
@@ -29,27 +31,31 @@ class Config:
         configuration.read(config_path)
 
         master = configuration.getboolean(Config.NODE_SECTION, 'master')
-        port = configuration.getint(Config.NODE_SECTION, 'port')
-        job_home = configuration.get(Config.NODE_SECTION, 'job_home')
+        port = configuration.getint(Config.NODE_SECTION, 'port') if configuration.has_option(Config.NODE_SECTION,
+                                                                                             'port') else None
 
         if not master:
             master_ip = configuration.get(Config.MASTER_NODE_SECTION, 'ip')
             master_port = configuration.getint(Config.MASTER_NODE_SECTION, 'port')
-            return Config(port, job_home, master_ip, master_port)
-        return Config(port, job_home)
+            return Config(port, master_ip, master_port)
+        return Config(port)
 
 
 def start(conf):
+    log.info("Starting...")
+    log.info("Configuring Pyro4...")
+    log.info("Pyro4 configured.")
     app.node = Node.create_node(conf)
     if app.node.is_master_node():
         app.scheduler = Scheduler(app.node, app.scheduled_jobs)
         app.scheduler.start()
-    app.run(port=conf.port)
+    log.info("Started.")
+    app.run(host='0.0.0.0', port=conf.port)
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
-log = logging.getLogger('App')
+log = logging.getLogger('PARCS')
 
 app = Flask(__name__)
 app.debug = False
@@ -70,7 +76,7 @@ def ok():
     return Response(status=200)
 
 
-# Master web
+# WEB
 @app.route('/')
 @app.route('/index')
 def index_page():
@@ -102,10 +108,7 @@ def about_page():
     return render_template("about.html")
 
 
-    # API
-
-
-@app.route
+# Public API
 @app.route('/api/worker')
 def get_workers():
     if not app.node.is_master_node():
@@ -124,11 +127,29 @@ def get_worker(worker_id):
         return not_found()
 
 
+@app.route('/api/job/<int:job_id>', methods=['DELETE'])
+def abort_job(job_id):
+    if not app.node.is_master_node():
+        return bad_request()
+    log.info("Aborting %d job.", job_id)
+    result = app.node.abort_job(job_id)
+    if result:
+        log.info("Job %d aborted.")
+    else:
+        log.info("Unable to find job %d.", job_id)
+    return ok() if result else not_found()
+
+
 @app.route('/api/worker/<int:worker_id>', methods=['DELETE'])
 def delete_worker(worker_id):
     if not app.node.is_master_node():
         return bad_request()
+    log.info("Removing %d worker.", worker_id)
     result = app.node.delete_worker(worker_id)
+    if result:
+        log.info("Worker %d removed.", worker_id)
+    else:
+        log.warn("Unable to find worker %d.", worker_id)
     return ok() if result else not_found()
 
 
@@ -183,15 +204,22 @@ def add_job():
     app.scheduled_jobs.put(job)
 
     return render_template('add_job.html', title='Add Job')
-    # Inernal api
+
+
+# Inernal api
+@app.route('/api/internal/heartbeat')
+def heartbeat():
+    return ok()
 
 
 @app.route('/api/internal/worker', methods=['POST'])
 def register_worker():
     json = request.get_json()
     node_link = create_node_link(json)
+    log.info("Worker %s is about to register.", str(node_link))
     result = app.node.register_worker(node_link)
     if result:
+        log.info("Worker %s registered.", str(node_link))
         return jsonify(worker=node_link.serialize())
     else:
         return bad_request()
@@ -219,5 +247,5 @@ def stop_job_rpc_server(job_id):
 def start_job_rpc_server(job_id):
     if app.node.is_master_node():
         return bad_request()
-    rpc_port = app.node.start_rpc(job_id)
-    return jsonify(port=rpc_port)
+    uri = app.node.start_rpc(job_id)
+    return jsonify(uri=str(uri))

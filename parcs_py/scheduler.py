@@ -1,20 +1,54 @@
 import logging
 from threading import Thread
 import imp
+
+import time
+
+import Pyro4
 from parcs_py.file_utils import get_solution_path, get_output_path, get_input_path
 import requests
-import zerorpc
 
 
-class ASYNCSolver:
-    def __init__(self, solver):
+class SolutionThread(Thread):
+    NOT_STARTED = 1
+    STARTED = 2
+    SUCCESSFULLY_FINISHED = 3
+    FAILURE_FINISHED = 4
+    TERMINATED = 5
+
+    def __init__(self, solver, job_id):
+        super(SolutionThread, self).__init__()
+        self.setDaemon(True)
         self.solver = solver
+        self.job_id = job_id
+        self.status = SolutionThread.NOT_STARTED
+        self.status_message = None
 
-    def __call__(self, *args, **kargs):
-        return self.solver.__call__(*args, async=True)
+    def run(self):
+        log.info("Solution thread started with %d job.", self.job_id)
+        self.status = SolutionThread.STARTED
+        try:
+            self.solver.solve()
+            self.status = SolutionThread.SUCCESSFULLY_FINISHED
+            if not self.is_terminated():
+                log.info("Solution thread successfully finished with %d job.", self.job_id)
+        except Exception as e:
+            self.status = SolutionThread.FAILURE_FINISHED
+            self.status_message = str(e)
+            log.warn("Solution thread finished with %d job because of error in solution file %s.", self.job_id,
+                     str(e))
 
-    def __getattr__(self, method):
-        return lambda *args, **kargs: self(method, *args, **kargs)
+    def terminate(self):
+        log.info("Solution thread terminated with %d job.", self.job_id)
+        self.status = SolutionThread.TERMINATED
+
+    def is_finished(self):
+        return self.status == SolutionThread.TERMINATED or \
+               self.status == SolutionThread.SUCCESSFULLY_FINISHED or \
+               self.status == SolutionThread.FAILURE_FINISHED
+
+    def is_terminated(self):
+        return self.status == SolutionThread.TERMINATED
 
 
 class NoWorkersException(Exception):
@@ -28,17 +62,22 @@ class Scheduler(Thread):
         super(Scheduler, self).__init__()
         self.setDaemon(True)
         self.job_home = master.conf.job_home
-        self.workers = master.workers
+        self.master = master
         self.scheduled_jobs = scheduled_jobs
+        self.current_job = None
+        self.executor = None
 
     def run(self):
         while True:
-            job = self.scheduled_jobs.get()
-            job_id = job.id
+            self.current_job = self.scheduled_jobs.get()
+            if self.current_job.aborted:
+                self.current_job.abort_job()
+                continue
+            job_id = self.current_job.id
             log.info('Job %d enqueued.' % job_id)
             selected_workers = []
             try:
-                job.start_job()
+                self.current_job.start_job()
                 rpc_workers, selected_workers = self.init_workers(job_id)
 
                 if len(rpc_workers) == 0:
@@ -50,36 +89,48 @@ class Scheduler(Thread):
 
                 solver = solution_module.Solver(rpc_workers, get_input_path(self.job_home, job_id),
                                                 get_output_path(self.job_home, job_id))
-                solver.solve()
-                job.end_job()
+                self.executor = SolutionThread(solver, job_id)
+                self.executor.start()
+                while not self.executor.is_finished():
+                    if self.current_job.aborted:
+                        self.executor.terminate()
+                    else:
+                        time.sleep(1)
+                if self.executor.is_terminated():
+                    self.current_job.abort_job()
+                else:
+                    if self.executor.status == SolutionThread.FAILURE_FINISHED:
+                        self.current_job.end_job(True, self.executor.status_message)
+                    else:
+                        self.current_job.end_job()
             except Exception as e:
-                job.end_job(True, e.message)
+                self.current_job.end_job(True, str(e))
             finally:
                 self.destroy_workers(selected_workers, job_id)
+                self.current_job = None
+                self.executor = None
 
     def init_workers(self, job_id):
         try:
             log.info('Starting workers...')
             active_workers = []
-            workers_rpc_urls = []
-            for worker in filter(lambda w: w.enabled, self.workers):
+            workers_rpc_uris = []
+            for worker in filter(lambda w: w.enabled, self.master.workers):
                 response = requests.post(
-                    'http://localhost:{}/api/internal/job'.format(worker.port),
-                    files={'solution': open(get_solution_path(self.job_home, job_id), 'rb')},
-                    data={'job_id': job_id}
+                        'http://{}:{}/api/internal/job'.format(worker.ip, worker.port),
+                        files={'solution': open(get_solution_path(self.job_home, job_id), 'rb')},
+                        data={'job_id': job_id}
                 )
                 if response.status_code == 200:
-                    rpc_port = response.json()['port']
-                    workers_rpc_urls.append('tcp://{}:{}'.format(worker.ip, rpc_port))
+                    uri = response.json()['uri']
+                    workers_rpc_uris.append(uri)
                     active_workers.append(worker)
                 else:
-                    log.warning('Unable to run RPC on %s.', worker.ip)
-            log.debug('Obtained RPC urls: %s', workers_rpc_urls)
+                    log.warning('Unable to run RPC on %s:%d.', worker.ip, worker.port)
+            log.debug('Obtained RPC urls: %s', workers_rpc_uris)
             rpc_workers = []
-            for url in workers_rpc_urls:
-                client = zerorpc.Client(timeout=None, heartbeat=None)
-                client.connect(url)
-                rpc_workers.append(wrap_solver(client))
+            for uri in workers_rpc_uris:
+                rpc_workers.append(Pyro4.async(Pyro4.Proxy(uri)))
             log.info('Started %d workers.', len(rpc_workers))
             return rpc_workers, active_workers
         except Exception as e:
@@ -91,7 +142,7 @@ class Scheduler(Thread):
         log.info('Stopping %d workers.' % len(selected_workers))
         for worker in selected_workers:
             response = requests.delete(
-                'http://localhost:%d/api/internal/rpc/%d' % (worker.port, job_id))
+                    'http://%s:%d/api/internal/rpc/%d' % (worker.ip, worker.port, job_id))
             if response.status_code == 200:
                 log.debug('RPC server on %s stopped.', worker.ip)
             else:
@@ -100,7 +151,3 @@ class Scheduler(Thread):
 
 
 log = logging.getLogger('Job Scheduler')
-
-
-def wrap_solver(solver):
-    return ASYNCSolver(solver)

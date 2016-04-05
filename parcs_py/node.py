@@ -1,12 +1,15 @@
 import imp
-from multiprocessing import Process
+from threading import Thread
+
+import time
+
 from parcs_py.network_utils import find_free_port
-import zerorpc
+import Pyro4
 import json
 from abc import abstractmethod
 from node_info import get_node_info_for_current_machine
 from node_link import NodeLink
-from file_utils import get_solution_path, get_input_path, get_output_path, clear_directory
+from file_utils import get_solution_path, setup_working_directory
 import requests
 import logging
 
@@ -17,7 +20,6 @@ class Node:
     def __init__(self, conf):
         self.conf = conf
         self.info = get_node_info_for_current_machine()
-        clear_directory(self.conf.job_home)
 
     @abstractmethod
     def is_master_node(self):
@@ -29,7 +31,6 @@ class Node:
             return MasterNode(conf)
         else:
             node = WorkerNode(conf)
-            node.register_on_master()
             return node
 
 
@@ -40,7 +41,10 @@ class WorkerNode(Node):
         log = logging.getLogger('Worker Node')
         self.rpc_thread = None
         self.master = NodeLink(conf.master_ip, conf.master_port)
-        log.info('Started on %s:%d; Job directory - %s.', conf.ip, conf.port, conf.job_home)
+        self.connected = False
+        log.info('Started on %s:%d; Job directory: %s.', conf.ip, conf.port, conf.job_home)
+        self.reconnector = MasterReconnector(self)
+        self.reconnector.start()
 
     def is_master_node(self):
         return False
@@ -49,22 +53,66 @@ class WorkerNode(Node):
         data = {'ip': self.conf.ip, 'port': self.conf.port,
                 'info': {'cpu': self.info.cpu, 'ram': self.info.ram}}
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-        r = requests.post('http://%s:%s/api/internal/worker' % (self.master.ip, self.master.port),
-                          data=json.dumps(data), headers=headers)
-        if r.status_code == 200:
-            log.info('Registered to master on %s:%d.',
-                     self.conf.master_ip, self.conf.master_port)
-        else:
-            log.warning('Unable to register to master on %s:%d.', self.conf.master_ip, self.conf.master_port)
+        try:
+            r = requests.post('http://%s:%s/api/internal/worker' % (self.master.ip, self.master.port),
+                              data=json.dumps(data), headers=headers)
+            if r.status_code == 200:
+                self.connected = True
+                log.info('Registered to master on %s:%d.',
+                         self.conf.master_ip, self.conf.master_port)
+            else:
+                self.connected = False
+                log.warning('Unable to register to master on %s:%d.', self.conf.master_ip, self.conf.master_port)
+        except Exception as e:
+            self.connected = False
+            log.warning('Unable to register to master on %s:%d because of %s.', self.conf.master_ip,
+                        self.conf.master_port, str(e))
+
+    def connection_with_master_lost(self):
+        self.connected = False
+        log.warning('Connection with master %s:%d lost.', self.master.ip, self.master.port)
 
     def start_rpc(self, job_id):
-        self.rpc_thread = RPCThread(self.conf, job_id)
+        self.rpc_thread = RPCThread(job_id, self.conf.job_home)
+        uri = self.rpc_thread.register_algorithm_module()
         self.rpc_thread.start()
-        return self.rpc_thread.rpc_port
+        log.info("Started RPC for %d job on %s.", job_id, uri)
+        return uri
 
     def stop_rpc(self):
         self.rpc_thread.stop()
+        log.info("Stopped RPC for %d job.", self.rpc_thread.job_id)
         self.rpc_thread = None
+
+
+class MasterReconnector(Thread):
+    def __init__(self, worker_node):
+        super(MasterReconnector, self).__init__()
+        self.setDaemon(True)
+        self.worker_node = worker_node
+
+    def run(self):
+        while True:
+            try:
+                time.sleep(1)
+                response = requests.get('http://%s:%s/api/internal/heartbeat' % (
+                    self.worker_node.conf.ip, self.worker_node.conf.port))
+                if response.status_code == 200:
+                    break
+            except Exception as e:
+                pass
+        while True:
+            if self.worker_node.connected:
+                try:
+                    response = requests.get('http://%s:%s/api/internal/heartbeat' % (
+                        self.worker_node.master.ip, self.worker_node.master.port))
+                    if response.status_code != 200:
+                        self.worker_node.connection_with_master_lost()
+                except Exception as e:
+                    self.worker_node.connection_with_master_lost()
+            else:
+                self.worker_node.register_on_master()
+            time.sleep(5)
 
 
 class MasterNode(Node):
@@ -74,8 +122,10 @@ class MasterNode(Node):
         log = logging.getLogger('Master Node')
         self.jobs = []
         self.workers = []
-        log.info('Started on %s:%d; Job directory - %s.', conf.ip, conf.port,
+        log.info('Started on %s:%d; Job directory: %s.', conf.ip, conf.port,
                  conf.job_home)
+        self.heartbeat = Heartbeat(self)
+        self.heartbeat.start()
 
     def is_master_node(self):
         return True
@@ -97,34 +147,83 @@ class MasterNode(Node):
         self.workers = filter(lambda w: w.id != worker_id, self.workers)
         return prev_len != len(self.workers)
 
+    def abort_job(self, job_id):
+        result = False
+        for j in self.jobs:
+            if j.id == job_id:
+                j.abort()
+                result = True
+        return result
+
     def add_job(self, job):
         self.jobs.append(job)
+        log.info("Job was added.")
 
     def find_job(self, job_id):
         filtered = filter(lambda j: j.id == job_id, self.jobs)
         return None if len(filtered) == 0 else filtered[0]
 
 
-class RPCThread(Process):
-    log = logging.getLogger('RPC Thread')
-
-    def __init__(self, conf, job_id):
-        super(RPCThread, self).__init__()
-        self.job_id = job_id
-        self.conf = conf
-        self.rpc_port = find_free_port()
+class Heartbeat(Thread):
+    def __init__(self, master_node):
+        super(Heartbeat, self).__init__()
+        self.setDaemon(True)
+        self.master_node = master_node
+        self.log = logging.getLogger('Heartbeat')
 
     def run(self):
-        solution_module = imp.load_source('solver_module_%d' % self.job_id,
-                                          get_solution_path(self.conf.job_home, self.job_id))
-        solver = solution_module.Solver()
-        rpc_server = zerorpc.Server(solver, heartbeat=None)
+        while True:
+            time.sleep(5)
+            self.log.debug('%d workers is about to check.', len(self.master_node.workers))
+            dead_workers = []
+            for worker in self.master_node.workers:
+                try:
+                    response = requests.get('http://%s:%s/api/internal/heartbeat' % (worker.ip, worker.port))
+                    if response.status_code != 200:
+                        dead_workers.append(worker.id)
+                except Exception as e:
+                    dead_workers.append(worker.id)
+            if len(dead_workers) == 0:
+                self.log.debug('All workers alive.')
+            else:
+                self.log.warn('%d workers are dead.', len(dead_workers))
+            for dead_worker in dead_workers:
+                self.master_node.delete_worker(dead_worker)
+
+
+class RPCThread(Thread):
+    log = logging.getLogger('RPC Thread')
+
+    def __init__(self, job_id, job_home):
+        super(RPCThread, self).__init__()
+        self.setDaemon(True)
+        self.job_id = job_id
+        self.job_home = job_home
         try:
-            rpc_server.bind('tcp://0.0.0.0:%d' % self.rpc_port)
-            log.info('Worker on localhost:%d for %d job started.', self.rpc_port, self.job_id)
-            rpc_server.run()
+            self.daemon = Pyro4.Daemon()
+            RPCThread.log.info('Pyro4 daemon created successfully.')
         except Exception as e:
-            log.warning('23 181 75 18er on localhost for %d job because of %s', self.job_id, e.message)
+            RPCThread.log.error('Unable to create pyro4 daemon.')
+
+    def register_algorithm_module(self):
+        if not self.daemon:
+            return None
+        try:
+            algorithm_module = imp.load_source('solver_module_%d' % self.job_id,
+                                               get_solution_path(self.job_home, self.job_id))
+            solver = algorithm_module.Solver()
+            uri = self.daemon.register(solver)
+            RPCThread.log.info("Algorithm module registered on %s.", uri)
+            return uri
+        except Exception as e:
+            RPCThread.log.error("Unable to create algorithm module or register it: %s.", str(e))
+            return None
+
+    def run(self):
+        try:
+            self.daemon.requestLoop()
+        except Exception as e:
+            log.warning('Error of %s.', str(e))
 
     def stop(self):
-        pass
+        self.daemon.shutdown()

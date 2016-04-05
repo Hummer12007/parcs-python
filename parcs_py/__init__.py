@@ -1,2 +1,2 @@
-import app
-from app import Config
+import parcs
+from parcs import Config

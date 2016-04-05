@@ -1,12 +1,29 @@
 $(document).ready(function () {
-    $('.remove-worker-btn').click(function (event) {
-        var worker_id = $(this).attr('worker_id');
+    $('.abort-job-btn').click(function (event) {
+        var button = $(this);
+        var jobId = button.data("job-id");
         $.ajax({
-            url: '/api/worker/' + worker_id,
+            url: '/api/job/'+ jobId,
             type: 'DELETE',
             success: function (result) {
-                var worker_element_id = '#' + 'worker-' + worker_id + '-well';
-                $(worker_element_id).remove();
+                setTimeout(function () {
+                    location.reload();
+                }, 2000);
+            },
+            error: function (result) {
+                alert('Unable to abort job.');
+            }
+        })
+    });
+
+    $('.remove-worker-btn').click(function (event) {
+        var workerId = $(this).data('worker-id');
+        $.ajax({
+            url: '/api/worker/' + workerId,
+            type: 'DELETE',
+            success: function (result) {
+                var workerElementId = '#' + 'worker-' + workerId + '-well';
+                $(workerElementId).remove();
             },
             error: function (result) {
                 alert('Unable to remove worker.');
@@ -17,7 +34,7 @@ $(document).ready(function () {
 
     $('.enable_disable-worker-btn').click(function (event) {
         var button = $(this);
-        var worker_id = button.attr('worker_id');
+        var worker_id = button.data('worker-id');
         var worker_element_id = '#' + 'worker-' + worker_id + '-well';
         var worker_well = $(worker_element_id);
         var state = button.attr('state');
