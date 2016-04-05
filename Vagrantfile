@@ -69,6 +69,7 @@ Vagrant.configure(2) do |config|
     sudo apt-get install -y git vim python-dev libxml2-dev libxslt-dev python-pip
     sudo pip install pyro4 py-cpuinfo flask requests
     cd ~
+    rm -r parcs_py_project
     git clone https://github.com/mhodovaniuk/parcs_py_project.git
     ifconfig
   SHELL
