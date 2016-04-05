@@ -66,7 +66,7 @@ Vagrant.configure(2) do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     sudo apt-get -y update
-    sudo apt-get install -y git vim python-dev libxml2-dev libxslt-dev
+    sudo apt-get install -y git vim python-dev libxml2-dev libxslt-dev python-pip
     sudo pip install pyro4 py-cpuinfo flask requests
     cd ~
     git clone https://github.com/mhodovaniuk/parcs_py_project.git
