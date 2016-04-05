@@ -71,6 +71,7 @@ Vagrant.configure(2) do |config|
     cd ~
     rm -r parcs_py_project
     git clone https://github.com/mhodovaniuk/parcs_py_project.git
+    cd parcs_py_project
     ifconfig
   SHELL
 end

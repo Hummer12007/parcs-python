@@ -73,7 +73,7 @@ class WorkerNode(Node):
         log.warning('Connection with master %s:%d lost.', self.master.ip, self.master.port)
 
     def start_rpc(self, job_id):
-        self.rpc_thread = RPCThread(job_id, self.conf.job_home)
+        self.rpc_thread = RPCThread(self.conf.ip, job_id, self.conf.job_home)
         uri = self.rpc_thread.register_algorithm_module()
         self.rpc_thread.start()
         log.info("Started RPC for %d job on %s.", job_id, uri)
@@ -194,13 +194,13 @@ class Heartbeat(Thread):
 class RPCThread(Thread):
     log = logging.getLogger('RPC Thread')
 
-    def __init__(self, job_id, job_home):
+    def __init__(self, ip, job_id, job_home):
         super(RPCThread, self).__init__()
         self.setDaemon(True)
         self.job_id = job_id
         self.job_home = job_home
         try:
-            self.daemon = Pyro4.Daemon()
+            self.daemon = Pyro4.Daemon(host=ip)
             RPCThread.log.info('Pyro4 daemon created successfully.')
         except Exception as e:
             RPCThread.log.error('Unable to create pyro4 daemon.')
