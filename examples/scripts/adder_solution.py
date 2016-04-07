@@ -39,7 +39,7 @@ class Solver:
     def myreduce(mapped):
         output = 0
         for x in mapped:
-            output += x.get()
+            output += x.value
         return output
 
     def read_input(self):
