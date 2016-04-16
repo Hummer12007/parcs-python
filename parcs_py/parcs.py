@@ -9,7 +9,7 @@ from file_utils import get_job_directory, OUTPUT_FILE_NAME, SOLUTION_FILE_NAME, 
 from job import Job
 import logging
 from Queue import Queue
-from network_utils import find_free_port
+from network_utils import find_free_port, get_ip
 from parcs_py.scheduler import Scheduler
 
 
@@ -19,7 +19,7 @@ class Config:
 
     def __init__(self, port, master_ip=None, master_port=None):
         self.master = master_ip is None
-        self.ip = socket.gethostbyname(socket.gethostname())
+        self.ip = get_ip()
         self.port = port if port else find_free_port()
         self.job_home = setup_working_directory()
         self.master_ip = master_ip
