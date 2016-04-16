@@ -17,14 +17,12 @@ class Job:
         Job.id += 1
         log.info('Job %d created.', self.id)
 
-    def abort(self):
-        self.aborted = True
-
     def start_job(self):
         self.start_time = datetime.datetime.now()
         log.info('Job %d started.', self.id)
 
     def abort_job(self):
+        self.aborted = True
         self.status = "Aborted"
         self.failed = True
         if self.start_time:

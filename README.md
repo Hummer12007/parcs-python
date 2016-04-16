@@ -19,7 +19,7 @@ Run ubuntu_install.sh
 ### Use start.py
 
 #### Config file mode
-```python2 start.py -config=/path_to_config/conf.config```
+```python2 start.py -config /path_to_config/conf.config```
 
 Config file examples:
 
@@ -28,7 +28,6 @@ Master:
 [Node]
 master=True
 port=8080
-job_home=~/.parcs-py/jobs/master_jobs
 ```
 
 Worker:
@@ -36,7 +35,6 @@ Worker:
 [Node]
 master=False
 port=8090
-job_home=~/.parcs-py/jobs/worker1_jobs
 [Master Node]
 ip=localhost
 port=8080

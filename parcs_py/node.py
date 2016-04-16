@@ -151,7 +151,7 @@ class MasterNode(Node):
         result = False
         for j in self.jobs:
             if j.id == job_id:
-                j.abort()
+                j.abort_job()
                 result = True
         return result
 
