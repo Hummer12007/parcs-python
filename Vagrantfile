@@ -20,10 +20,11 @@ Vagrant.configure(2) do |config|
             sudo apt-get -y update
             sudo apt-get install -y git vim python-dev libxml2-dev libxslt-dev python-pip
             sudo pip install netifaces pyro4 py-cpuinfo flask requests
-            cd ~
-            rm -r parcs_py_project
+            cd /home/vagrant
+            rm -r parcs_py_project/
             echo "git clone https://github.com/mhodovaniuk/parcs_py_project.git" > clone_parcs.sh
             chmod +x clone_parcs.sh
+            ./clone_parcs.sh
         SHELL
    end
    
@@ -40,10 +41,11 @@ Vagrant.configure(2) do |config|
             sudo apt-get -y update
             sudo apt-get install -y git vim python-dev libxml2-dev libxslt-dev python-pip
             sudo pip install netifaces pyro4 py-cpuinfo flask requests
-            cd ~
-            rm -r parcs_py_project
+            cd /home/vagrant
+            rm -r parcs_py_project/
             echo "git clone https://github.com/mhodovaniuk/parcs_py_project.git" > clone_parcs.sh
             chmod +x clone_parcs.sh
+            ./clone_parcs.sh
         SHELL
    end
 end

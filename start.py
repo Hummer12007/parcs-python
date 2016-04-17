@@ -11,7 +11,7 @@ parser.add_argument('-config', help='Configuration file location')
 args = parser.parse_args()
 config = None
 if args.config is None:
-    ip = int(args.ip)
+    ip = args.ip
     port = int(args.port) if args.port else None
     master_ip = args.master_ip
     master_port = int(args.master_port) if args.master_port else None
