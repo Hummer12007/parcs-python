@@ -1,4 +1,5 @@
 import socket
+from netifaces import interfaces, ifaddresses, AF_INET
 
 
 def find_free_port():
@@ -10,7 +11,9 @@ def find_free_port():
 
 
 def get_ip():
-    return [l for l in (
-    [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
-        [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in
-         [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+    for interfaceName in interfaces():
+        addresses = [i['addr'] for i in ifaddresses(interfaceName).setdefault(AF_INET, [{'addr': 'No IP addr'}])]
+        address = str(addresses[0])
+        if address.startswith('192.'):
+            return address
+    return None
