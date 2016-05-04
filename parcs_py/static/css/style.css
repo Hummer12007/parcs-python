@@ -34,3 +34,8 @@
 .error-text{
     color: red;
 }
+
+.jobs-list {
+    max-height: 90%;
+    overflow: auto;
+}

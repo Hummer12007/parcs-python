@@ -1,56 +1,60 @@
-{% extends "template.html" %} {% block content %} {% if jobs|length==0%}
-<h2>There are no jobs.</h2>
-{%else%} {% for job in jobs %}
-<div class="well job-well img-rounded" data-job-id="{{job.id}}">
-    <div class="row">
-        <div class="col-md-1 i-id">#{{job.id}}</div>
-        <div class="col-md-11 job-name text-center">
+{% extends "template.html" %} {% block content %}
+<div class="jobs-list">
+    {% if jobs|length==0%}
+    <h2>There are no jobs.</h2>
+    {%else%} {% for job in jobs %}
+    <div class="well job-well img-rounded" data-job-id="{{job.id}}">
+        <div class="row">
+            <div class="col-md-1 i-id">#{{job.id}}</div>
+            <div class="col-md-11 job-name text-center">
 
-            <span {%if job.failed == True%} class="error-text" {%endif%}>{{job.title()}}</span>
+                <span {%if job.failed== True%} class="error-text" {%endif%}>{{job.title()}}</span>
+            </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-2 i-attr-name text-center"> Start Time:</div>
-        <div class="col-md-2 i-attr-value text-center">
-            {% if job.start_time %}
-            {{job.start_time.strftime('%d/%m %H:%M:%S')}}
-            {%else%}
-            Not Started
-            {%endif%}
+        <div class="row">
+            <div class="col-md-2 i-attr-name text-center"> Start Time:</div>
+            <div class="col-md-2 i-attr-value text-center">
+                {% if job.start_time %}
+                {{job.start_time.strftime('%d/%m %H:%M:%S')}}
+                {%else%}
+                Not Started
+                {%endif%}
+            </div>
+            <div class="col-md-2 col-md-offset-2">
+                <a href="/api/job/{{job.id}}/solution" type="button"
+                   class="btn btn-success i-btn">Code</a>
+            </div>
+            <div class="col-md-2">
+                <a href="/api/job/{{job.id}}/input" type="button" class="btn btn-success i-btn">Input</a>
+            </div>
+            <div class="col-md-2">
+                {% if job.start_time%}
+                <a href="/api/job/{{job.id}}/output" type="button" class="btn btn-success i-btn"
+                   {%if job.duration is not none and not job.failed %} {%else%} disabled {%endif%}>Output</a> {%endif%}
+            </div>
         </div>
-        <div class="col-md-2 col-md-offset-2">
-            <a href="/api/job/{{job.id}}/solution" type="button"
-               class="btn btn-success i-btn">Code</a>
-        </div>
-        <div class="col-md-2">
-            <a href="/api/job/{{job.id}}/input" type="button" class="btn btn-success i-btn">Input</a>
-        </div>
-        <div class="col-md-2">
-            {% if job.start_time%}
-            <a href="/api/job/{{job.id}}/output" type="button" class="btn btn-success i-btn"
-               {%if job.duration is not none and not job.failed %} {%else%} disabled {%endif%}>Output</a> {%endif%}
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-2 i-attr-name text-center"> Duration:</div>
-        <div class="col-md-2 i-attr-value text-center">
-            {% if job.duration is not none%}
-            {{job.duration_str}}
-            {%else%}
-            {% if job.start_time is not none%}
-            In Progress
-            {%else%}
-            Not Started
-            {%endif%}
-            {%endif%}
-        </div>
-        <div class="col-md-2 col-md-offset-6">
-            {% if job.duration is none%}
+        <div class="row">
+            <div class="col-md-2 i-attr-name text-center"> Duration:</div>
+            <div class="col-md-2 i-attr-value text-center">
+                {% if job.duration is not none%}
+                {{job.duration_str}}
+                {%else%}
+                {% if job.start_time is not none%}
+                In Progress
+                {%else%}
+                Not Started
+                {%endif%}
+                {%endif%}
+            </div>
+            <div class="col-md-2 col-md-offset-6">
+                {% if job.duration is none%}
                 <button type="button" class="abort-job-btn btn btn-danger i-btn" data-job-id="{{job.id}}">Abort</button>
-            {%endif%}
+                {%endif%}
+            </div>
         </div>
     </div>
-</div>
 
-{% endfor %}
-{%endif%} {% endblock %}
+    {% endfor %}
+    {%endif%}
+</div>
+{% endblock %}
