@@ -1,46 +1,53 @@
 {% extends "template.html" %} {% block content %} {% if workers|length==0%}
-<div class="centered-message">
-    <h2>There are no workers.</h2>
-</div>
-{%else%} {% for worker in workers %}
-<div id="worker-{{worker.id}}-well" class="well img-rounded {% if worker.enabled %}enabled-worker{%else%}disabled-worker{%endif%}">
-    <div class="row ">
-        <div class="col-md-1 i-id">#{{worker.id}}</div>
-        <div class="col-md-1 i-attr-name text-center">IP:</div>
-        <div class="col-md-1 i-attr-value text-center">{{worker.ip}}</div>
-        <div class="col-md-1 col-md-offset-6 i-attr-name text-center">Port:</div>
-        <div class="col-md-1 i-attr-value text-center">{{worker.port}}</div>
+<div class="parcs-list">
+    <div class="centered-message">
+        <h2>There are no workers.</h2>
     </div>
-    <div class="row">
-        <div class="col-md-4 i-attr-name text-center">
-            Worker Info
+    {%else%} {% for worker in workers %}
+    <div id="worker-{{worker.id}}-well"
+         class="well img-rounded {% if worker.enabled %}enabled-worker{%else%}disabled-worker{%endif%}">
+        <div class="row ">
+            <div class="col-md-1 i-id">#{{worker.id}}</div>
+            <div class="col-md-1 i-attr-name text-center">IP:</div>
+            <div class="col-md-1 i-attr-value text-center">{{worker.ip}}</div>
+            <div class="col-md-1 col-md-offset-6 i-attr-name text-center">Port:</div>
+            <div class="col-md-1 i-attr-value text-center">{{worker.port}}</div>
         </div>
-        <div class="col-md-1 col-md-offset-5">
-            {% if worker.enabled %}
-            <button type="button" class="btn btn-warning  enable_disable-worker-btn i-btn" data-worker-id="{{worker.id}}"
-                    state="enable">Disable
-            </button>
-            {%else%}
-            <button type="button" class="btn btn-success  enable_disable-worker-btn i-btn" data-worker-id="{{worker.id}}"
-                    state="disable">Enable
-            </button>
-            {%endif%}
+        <div class="row">
+            <div class="col-md-4 i-attr-name text-center">
+                Worker Info
+            </div>
+            <div class="col-md-1 col-md-offset-5">
+                {% if worker.enabled %}
+                <button type="button" class="btn btn-warning  enable_disable-worker-btn i-btn"
+                        data-worker-id="{{worker.id}}"
+                        state="enable">Disable
+                </button>
+                {%else%}
+                <button type="button" class="btn btn-success  enable_disable-worker-btn i-btn"
+                        data-worker-id="{{worker.id}}"
+                        state="disable">Enable
+                </button>
+                {%endif%}
 
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger remove-worker-btn i-btn" data-worker-id="{{worker.id}}">
+                    Remove
+                </button>
+            </div>
         </div>
-        <div class="col-md-1">
-            <button type="button" class="btn btn-danger remove-worker-btn i-btn" data-worker-id="{{worker.id}}">Remove
-            </button>
+        <div class="row">
+            <div class="col-md-2 i-attr-name text-center">CPU:</div>
+            <div class="col-md-10 i-attr-value ">{{worker.info.cpu}}</div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-2 i-attr-name text-center">CPU:</div>
-        <div class="col-md-10 i-attr-value ">{{worker.info.cpu}}</div>
-    </div>
 
-    <div class="row">
-        <div class="col-md-2 i-attr-name text-center">RAM:</div>
-        <div class="col-md-10 i-attr-value ">{{worker.info.ram}}</div>
+        <div class="row">
+            <div class="col-md-2 i-attr-name text-center">RAM:</div>
+            <div class="col-md-10 i-attr-value ">{{worker.info.ram}}</div>
+        </div>
     </div>
+    {% endfor %}
+    {%endif%}
 </div>
-{% endfor %}
-{%endif%} {% endblock %}
+{% endblock %}

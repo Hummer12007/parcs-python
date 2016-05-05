@@ -30,9 +30,9 @@
                 <li {% if request.path=='/' or request.path=='/index' %}class="active" {% endif %}><a
                         href="/index">Home</a>
                 </li>
-                <li {% if request.path=='/nodes' %} class="active" {% endif %}><a href="/workers">Nodes</a></li>
+                <li {% if request.path=='/workers' %} class="active" {% endif %}><a href="/workers">Nodes</a></li>
                 <li {% if request.path=='/jobs' %} class="active" {% endif %}><a href="/jobs">Jobs</a></li>
-                <li {% if request.path=='/add/job' %} class="active" {% endif %}><a href="/add_job">Add Job</a></li>
+                <li {% if request.path=='/add_job' %} class="active" {% endif %}><a href="/add_job">Add Job</a></li>
                 <li {% if request.path=='/about' %} class="active" {% endif %}><a href="/about">About</a></li>
             </ul>
         </nav>
