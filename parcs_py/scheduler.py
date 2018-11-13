@@ -130,8 +130,12 @@ class Scheduler(Thread):
             log.debug('Obtained RPC urls: %s', workers_rpc_uris)
             rpc_workers = []
             for uri in workers_rpc_uris:
-                rpc_workers.append(Pyro4.async(Pyro4.Proxy(uri)))
+                proxy = Pyro4.Proxy(uri)
+                async = Pyro4.async(proxy)
+                print(uri, proxy, async)
+                rpc_workers.append(proxy)
             log.info('Started %d workers.', len(rpc_workers))
+            print(rpc_workers)
             return rpc_workers, active_workers
         except Exception as e:
             return [], []

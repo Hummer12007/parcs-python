@@ -95,11 +95,13 @@ class MasterReconnector(Thread):
         while True:
             try:
                 time.sleep(1)
+                log.info('Trying to connect')
                 response = requests.get('http://%s:%s/api/internal/heartbeat' % (
                     self.worker_node.conf.ip, self.worker_node.conf.port))
                 if response.status_code == 200:
                     break
             except Exception as e:
+                print(e)
                 pass
         while True:
             if self.worker_node.connected:
@@ -133,10 +135,13 @@ class MasterNode(Node):
     def register_worker(self, node_link):
         if len(filter(lambda l: l.ip == node_link.ip and l.port == node_link.port, self.workers)) == 0:
             self.workers.append(node_link)
-            return True
+            ret = True
         else:
             log.warning('Unable to register node %s:%d because it is already registered.', node_link.ip, node_link.port)
-            return False
+            ret = False
+        print(node_link)
+        print(self.workers)
+        return ret
 
     def find_worker(self, worker_id):
         workers_list = filter(lambda w: w.id == worker_id, self.workers)
