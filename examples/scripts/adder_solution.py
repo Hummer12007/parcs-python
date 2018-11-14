@@ -1,3 +1,5 @@
+from Pyro4 import expose
+
 class Solver:
     def __init__(self, workers=None, input_file_name=None, output_file_name=None):
         self.input_file_name = input_file_name
@@ -28,6 +30,7 @@ class Solver:
         print("Job Finished")
 
     @staticmethod
+    @expose
     def mymap(a, b):
         print (a, b)
         res = 0
@@ -36,6 +39,7 @@ class Solver:
         return res
 
     @staticmethod
+    @expose
     def myreduce(mapped):
         output = 0
         for x in mapped:

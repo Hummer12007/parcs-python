@@ -1,4 +1,5 @@
 # import gmpy2
+from Pyro4 import expose
 import random
 
 
@@ -34,6 +35,7 @@ class Solver:
         print("Job Finished")
 
     @staticmethod
+    @expose
     def mymap(a, b, count):
         print(a)
         print(b)
@@ -53,6 +55,7 @@ class Solver:
         return primes
 
     @staticmethod
+    @expose
     def myreduce(mapped):
         print("reduce")
         output = []
@@ -78,6 +81,7 @@ class Solver:
         print("output done")
 
     @staticmethod
+    @expose
     def is_probable_prime(n):
         """
         Miller-Rabin primality test.
