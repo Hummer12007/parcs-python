@@ -1,6 +1,7 @@
 import logging
 from threading import Thread
 import imp
+import traceback
 
 import time
 
@@ -37,6 +38,7 @@ class SolutionThread(Thread):
             self.status_message = str(e)
             log.warn("Solution thread finished with %d job because of error in solution file %s.", self.job_id,
                      str(e))
+            traceback.print_exc()
 
     def terminate(self):
         log.info("Solution thread terminated with %d job.", self.job_id)
