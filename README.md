@@ -1,48 +1,29 @@
 # PARCS Python
 
-## Installation
+## Google Cloud deployment tutorial
 
-### Linux (Fedora)
-1. Install python2, virtualenv
-2. Create virtual environment with: ```virtualenv -p python2 py2-env``` and activate it: ```source py2-env/bin/activate```
-3. Install dependencies with pip: netifaces pyro4, py-cpuinfo, requests, flask
+### Preparation
 
-### Linux (Ubuntu)
-Run ubuntu_install.sh
+1. Install Google Cloud SDK
+2. Login to gcloud: `gcloud auth login`
+3. Create a project: `gcloud projects create project-name`. You need to invent your own cute project name here.
+4. Select the project: `gcloud config set project parcs-name`.
+5. You need to enable Cloud and Billing API using Google Cloud Console here (you will be prompted to do so later otherwise).
+5. Set region and zone: `gcloud config set compute/zone europe-north1-a`, `gcloud config set compute/region europe-north1`.
+6. Configure firewall: `gcloud compute   firewall-rules create allow-all --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=all --source-ranges=0.0.0.0/0`
 
-### Vagrant on any environment
-1. Install vagrant
-2. Use ```vagrant up master (worker1)``` to get fully configured ubuntu box with PARCS Python
-3. Use ```vagrant ssh master (worker1)``` to connect to the box.
+### Instance creation
 
-## Running
+1. Create the master instance: `gcloud compute instances create-with-container master --container-image=registry.hub.docker.com/hummer12007/parcs-node --container-env PARCS_ARGS="master"`
 
-### Use start.py
+Example output:
 
-IP is an optional parameter. Use it in case network_utils.py#get_ip unable to detect IP.
+```NAME    ZONE             MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+master  europe-north1-a  n1-standard-1               10.166.0.2   35.228.130.74  RUNNING```
 
-#### Config file mode
-```python2 start.py -config /path_to_config/conf.config```
+You need to record the external IP, it will be referred to as `$MASTER_IP` later.
 
-Config file examples:
+2. Create the workers (you can create as many as you wish): `gcloud compute instances create-with-container worker1 worker2 worker3 --container-image=registry.hub.docker.com/hummer12007/parcs-node --container-env PARCS_ARGS="worker 10.166.0.2"`
 
-Master:
-```
-[Node]
-master=True
-port=8080
-```
-
-Worker:
-```
-[Node]
-master=False
-port=8090
-[Master Node]
-ip=localhost
-port=8080
-```
-
-#### Command line arguments
-Use ```python2 start.py -h``` for help
+3. The PARCS web interface will be available at http://$MASTER_IP:8080
 
