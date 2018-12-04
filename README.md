@@ -2,6 +2,8 @@
 
 You can browse the PDF version at https://git.sr.ht/%7Ehummer12007/parcs-python/tree/master/parcs-python.pdf
 
+Docker image available at https://hub.docker.com/r/hummer12007/parcs-node/
+
 ## Google Cloud deployment tutorial
 
 ### Preparation
