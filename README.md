@@ -1,5 +1,7 @@
 # PARCS Python
 
+You can browse the PDF version at https://git.sr.ht/%7Ehummer12007/parcs-python/tree/master/parcs-python.pdf
+
 ## Google Cloud deployment tutorial
 
 ### Preparation
@@ -18,12 +20,14 @@
 
 Example output:
 
-```NAME    ZONE             MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
-master  europe-north1-a  n1-standard-1               10.166.0.2   35.228.130.74  RUNNING```
+```
+NAME    ZONE             MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+master  europe-north1-a  n1-standard-1               10.166.0.2   35.228.130.74  RUNNING
+```
 
 You need to record the external IP, it will be referred to as `$MASTER_IP` later.
 
-2. Create the workers (you can create as many as you wish): `gcloud compute instances create-with-container worker1 worker2 worker3 --container-image=registry.hub.docker.com/hummer12007/parcs-node --container-env PARCS_ARGS="worker 10.166.0.2"`
+2. Create the workers (you can create as many as you wish): `gcloud compute instances create-with-container worker1 worker2 worker3 --container-image=registry.hub.docker.com/hummer12007/parcs-node --container-env PARCS_ARGS="worker 10.166.0.2"`
 
 3. The PARCS web interface will be available at http://$MASTER_IP:8080
 
